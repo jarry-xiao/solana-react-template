@@ -1,6 +1,6 @@
 # Bare Bones React App for Solana Dapps
 
-![Demo]("./demo/demo.gif")
+![Demo]("https://media.giphy.com/media/FRQWLh2uRPfx7Pbklo")
 ## Available Scripts
 
 In the project directory, you can run:
