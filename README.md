@@ -1,4 +1,4 @@
-# Getting Started with Create React App
+# Bare Bones React App for Solana Dapps
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
