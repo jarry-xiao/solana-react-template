@@ -1,5 +1,6 @@
 # Bare Bones React App for Solana Dapps
 This is a simple scaffold that only contains a Phantom Wallet wrapper and a dark mode/light mode toggle. The world is your oyster.
+
 ![Demo](demo.gif)
 ## Available Scripts
 
