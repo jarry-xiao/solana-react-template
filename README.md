@@ -1,6 +1,10 @@
 # Bare Bones React App for Solana Dapps
 
+<<<<<<< HEAD
 ![Demo]("https://media.giphy.com/media/FRQWLh2uRPfx7Pbklo/giphy.gif")
+=======
+![Demo]("./demo.gif")
+>>>>>>> a7d60bc (local file root dir)
 ## Available Scripts
 
 In the project directory, you can run:
