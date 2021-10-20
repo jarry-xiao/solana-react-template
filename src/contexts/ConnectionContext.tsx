@@ -1,7 +1,6 @@
-import { sleep, useLocalStorageState } from '../utils/utils';
+import { sleep, useLocalStorageState } from "../utils/utils";
 import {
   Keypair,
-  clusterApiUrl,
   Commitment,
   Connection,
   RpcResponseAndContext,
@@ -12,38 +11,35 @@ import {
   TransactionSignature,
   Blockhash,
   FeeCalculator,
-} from '@solana/web3.js';
-import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { notify } from '../utils/notifications';
-import { ExplorerLink } from '../components/ExplorerLink';
-import { TokenInfo, TokenListProvider, ENV as ChainId } from '@solana/spl-token-registry';
-import { WalletSigner } from './WalletContext/WalletContext';
-import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
+} from "@solana/web3.js";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { notify } from "../utils/notifications";
+import { ExplorerLink } from "../components/ExplorerLink";
+import {
+  TokenInfo,
+  TokenListProvider,
+  ENV as ChainId,
+} from "@solana/spl-token-registry";
+import { WalletSigner } from "./WalletContext/WalletContext";
+import { WalletNotConnectedError } from "@solana/wallet-adapter-base";
 
 interface BlockhashAndFeeCalculator {
   blockhash: Blockhash;
   feeCalculator: FeeCalculator;
 }
 
-export type ENV =
-  | 'mainnet-beta'
-  | 'mainnet-beta (Solana)'
-  | 'mainnet-beta (Serum)'
-  | 'testnet'
-  | 'devnet'
-  | 'localnet'
-  | 'lending';
+export type ENV = "mainnet-beta" | "testnet" | "devnet" | "localnet";
 
 export const ENDPOINTS = [
   {
-    name: 'devnet' as ENV,
-    endpoint: "https://api.devnet.solana.com",
-    ChainId: ChainId.Devnet,
-  },
-  {
-    name: 'mainnet-beta' as ENV,
+    name: "mainnet-beta" as ENV,
     endpoint: "https://api.mainnet-beta.solana.com",
     ChainId: ChainId.MainnetBeta,
+  },
+  {
+    name: "devnet" as ENV,
+    endpoint: "https://api.devnet.solana.com",
+    ChainId: ChainId.Devnet,
   },
 ];
 
@@ -61,18 +57,26 @@ interface ConnectionConfig {
 const ConnectionContext = React.createContext<ConnectionConfig>({
   endpoint: DEFAULT,
   setEndpoint: () => {},
-  connection: new Connection(DEFAULT, 'recent'),
+  connection: new Connection(DEFAULT, "recent"),
   env: ENDPOINTS[0].name,
   tokens: [],
   tokenMap: new Map<string, TokenInfo>(),
 });
 
 export function ConnectionProvider({ children = undefined as any }) {
-  const [endpoint, setEndpoint] = useLocalStorageState('connectionEndpoint', ENDPOINTS[0].endpoint);
+  const [endpoint, setEndpoint] = useLocalStorageState(
+    "connectionEndpoint",
+    ENDPOINTS[0].endpoint
+  );
 
-  const connection = useMemo(() => new Connection(endpoint, 'recent'), [endpoint]);
+  const connection = useMemo(
+    () => new Connection(endpoint, "recent"),
+    [endpoint]
+  );
 
-  const env = ENDPOINTS.find((end) => end.endpoint === endpoint)?.name || ENDPOINTS[0].name;
+  const env =
+    ENDPOINTS.find((end) => end.endpoint === endpoint)?.name ||
+    ENDPOINTS[0].name;
 
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
   const [tokenMap, setTokenMap] = useState<Map<string, TokenInfo>>(new Map());
@@ -80,8 +84,11 @@ export function ConnectionProvider({ children = undefined as any }) {
     // fetch token files
     new TokenListProvider().resolve().then((container) => {
       const list = container
-        .excludeByTag('nft')
-        .filterByChainId(ENDPOINTS.find((end) => end.endpoint === endpoint)?.ChainId || ChainId.MainnetBeta)
+        .excludeByTag("nft")
+        .filterByChainId(
+          ENDPOINTS.find((end) => end.endpoint === endpoint)?.ChainId ||
+            ChainId.MainnetBeta
+        )
         .getList();
 
       const knownMints = [...list].reduce((map, item) => {
@@ -92,13 +99,16 @@ export function ConnectionProvider({ children = undefined as any }) {
       setTokenMap(knownMints);
       setTokens(list);
     });
-  }, [env]);
+  }, [env, endpoint]);
 
   // The websocket library solana/web3.js uses closes its websocket connection when the subscription list
   // is empty after opening its first time, preventing subsequent subscriptions from receiving responses.
   // This is a hack to prevent the list from every getting empty
   useEffect(() => {
-    const id = connection.onAccountChange(Keypair.generate().publicKey, () => {});
+    const id = connection.onAccountChange(
+      Keypair.generate().publicKey,
+      () => {}
+    );
     return () => {
       connection.removeAccountChangeListener(id);
     };
@@ -142,9 +152,12 @@ export function useConnectionConfig() {
   };
 }
 
-export const getErrorForTransaction = async (connection: Connection, txid: string) => {
+export const getErrorForTransaction = async (
+  connection: Connection,
+  txid: string
+) => {
   // wait for all confirmation before geting transaction
-  await connection.confirmTransaction(txid, 'max');
+  await connection.confirmTransaction(txid, "max");
 
   const tx = await connection.getParsedConfirmedTransaction(txid);
 
@@ -185,6 +198,8 @@ export async function sendTransactionsWithManualRetry(
   let tries = 0;
   let lastInstructionsLength: any = null;
   let toRemoveSigners: Record<number, boolean> = {};
+
+ 
   instructions = instructions.filter((instr, i) => {
     if (instr.length > 0) {
       return true;
@@ -204,7 +219,13 @@ export async function sendTransactionsWithManualRetry(
 
     try {
       if (instructions.length === 1) {
-        await sendTransactionWithRetry(connection, wallet, instructions[0], filteredSigners[0], 'single');
+        await sendTransactionWithRetry(
+          connection,
+          wallet,
+          instructions[0],
+          filteredSigners[0],
+          "single"
+        );
         stopPoint = 1;
       } else {
         stopPoint = await sendTransactions(
@@ -213,18 +234,18 @@ export async function sendTransactionsWithManualRetry(
           instructions,
           filteredSigners,
           SequenceType.StopOnFailure,
-          'single'
+          "single"
         );
       }
     } catch (e) {
       console.error(e);
     }
     console.log(
-      'Died on ',
+      "Died on ",
       stopPoint,
-      'retrying from instruction',
+      "retrying from instruction",
       instructions[stopPoint],
-      'instructions length is',
+      "instructions length is",
       instructions.length
     );
     lastInstructionsLength = instructions.length;
@@ -237,7 +258,7 @@ export const sendTransactions = async (
   instructionSet: TransactionInstruction[][],
   signersSet: Keypair[][],
   sequenceType: SequenceType = SequenceType.Parallel,
-  commitment: Commitment = 'singleGossip',
+  commitment: Commitment = "singleGossip",
   successCallback: (txid: string, ind: number) => void = (txid, ind) => {},
   failCallback: (reason: string, ind: number) => boolean = (txid, ind) => false,
   block?: BlockhashAndFeeCalculator
@@ -279,7 +300,12 @@ export const sendTransactions = async (
   const pendingTxns: Promise<{ txid: string; slot: number }>[] = [];
 
   let breakEarlyObject = { breakEarly: false, i: 0 };
-  console.log('Signed txns length', signedTxns.length, 'vs handed in length', instructionSet.length);
+  console.log(
+    "Signed txns length",
+    signedTxns.length,
+    "vs handed in length",
+    instructionSet.length
+  );
   for (let i = 0; i < signedTxns.length; i++) {
     const signedTxnPromise = sendSignedTransaction({
       connection,
@@ -303,9 +329,9 @@ export const sendTransactions = async (
       try {
         await signedTxnPromise;
       } catch (e) {
-        console.log('Caught failure', e);
+        console.log("Caught failure", e);
         if (breakEarlyObject.breakEarly) {
-          console.log('Died on ', breakEarlyObject.i);
+          console.log("Died on ", breakEarlyObject.i);
           return breakEarlyObject.i; // Return the txn we failed on by index
         }
       }
@@ -327,7 +353,7 @@ export const sendTransaction = async (
   instructions: TransactionInstruction[],
   signers: Keypair[],
   awaitConfirmation = true,
-  commitment: Commitment = 'singleGossip',
+  commitment: Commitment = "singleGossip",
   includesFeePayer: boolean = false,
   block?: BlockhashAndFeeCalculator
 ) => {
@@ -335,7 +361,9 @@ export const sendTransaction = async (
 
   let transaction = new Transaction();
   instructions.forEach((instruction) => transaction.add(instruction));
-  transaction.recentBlockhash = (block || (await connection.getRecentBlockhash(commitment))).blockhash;
+  transaction.recentBlockhash = (
+    block || (await connection.getRecentBlockhash(commitment))
+  ).blockhash;
 
   if (includesFeePayer) {
     transaction.setSigners(...signers.map((s) => s.publicKey));
@@ -364,24 +392,30 @@ export const sendTransaction = async (
   let slot = 0;
 
   if (awaitConfirmation) {
-    const confirmation = await awaitTransactionSignatureConfirmation(txid, DEFAULT_TIMEOUT, connection, commitment);
+    const confirmation = await awaitTransactionSignatureConfirmation(
+      txid,
+      DEFAULT_TIMEOUT,
+      connection,
+      commitment
+    );
 
-    if (!confirmation) throw new Error('Timed out awaiting confirmation on transaction');
+    if (!confirmation)
+      throw new Error("Timed out awaiting confirmation on transaction");
     slot = confirmation?.slot || 0;
 
     if (confirmation?.err) {
       const errors = await getErrorForTransaction(connection, txid);
       notify({
-        message: 'Transaction failed...',
+        message: "Transaction failed...",
         description: (
           <>
             {errors.map((err) => (
               <div>{err}</div>
             ))}
-            <ExplorerLink address={txid} type='transaction' />
+            <ExplorerLink address={txid} type="transaction" />
           </>
         ),
-        type: 'error',
+        type: "error",
       });
 
       throw new Error(`Raw transaction ${txid} failed`);
@@ -396,7 +430,7 @@ export const sendTransactionWithRetry = async (
   wallet: WalletSigner,
   instructions: TransactionInstruction[],
   signers: Keypair[],
-  commitment: Commitment = 'singleGossip',
+  commitment: Commitment = "singleGossip",
   includesFeePayer: boolean = false,
   block?: BlockhashAndFeeCalculator,
   beforeSend?: () => void
@@ -405,7 +439,9 @@ export const sendTransactionWithRetry = async (
 
   let transaction = new Transaction();
   instructions.forEach((instruction) => transaction.add(instruction));
-  transaction.recentBlockhash = (block || (await connection.getRecentBlockhash(commitment))).blockhash;
+  transaction.recentBlockhash = (
+    block || (await connection.getRecentBlockhash(commitment))
+  ).blockhash;
 
   if (includesFeePayer) {
     transaction.setSigners(...signers.map((s) => s.publicKey));
@@ -440,7 +476,7 @@ export const sendTransactionWithRetry = async (
 
     return { txid, slot };
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 };
 
@@ -465,11 +501,14 @@ export async function sendSignedTransaction({
   const rawTransaction = signedTransaction.serialize();
   const startTime = getUnixTs();
   let slot = 0;
-  const txid: TransactionSignature = await connection.sendRawTransaction(rawTransaction, {
-    skipPreflight: true,
-  });
+  const txid: TransactionSignature = await connection.sendRawTransaction(
+    rawTransaction,
+    {
+      skipPreflight: true,
+    }
+  );
 
-  console.log('Started awaiting confirmation for', txid);
+  console.log("Started awaiting confirmation for", txid);
 
   let done = false;
   (async () => {
@@ -481,31 +520,42 @@ export async function sendSignedTransaction({
     }
   })();
   try {
-    const confirmation = await awaitTransactionSignatureConfirmation(txid, timeout, connection, 'recent', true);
+    const confirmation = await awaitTransactionSignatureConfirmation(
+      txid,
+      timeout,
+      connection,
+      "recent",
+      true
+    );
 
-    if (!confirmation) throw new Error('Timed out awaiting confirmation on transaction');
+    if (!confirmation)
+      throw new Error("Timed out awaiting confirmation on transaction");
 
     if (confirmation.err) {
       console.error(confirmation.err);
-      throw new Error('Transaction failed: Custom instruction error');
+      throw new Error("Transaction failed: Custom instruction error");
     }
 
     slot = confirmation?.slot || 0;
   } catch (err) {
-    console.error('Timeout Error caught', err);
+    console.error("Timeout Error caught", err);
     if ((err as any).timeout) {
-      throw new Error('Timed out awaiting confirmation on transaction');
+      throw new Error("Timed out awaiting confirmation on transaction");
     }
     let simulateResult: SimulatedTransactionResponse | null = null;
     try {
-      simulateResult = (await simulateTransaction(connection, signedTransaction, 'single')).value;
+      simulateResult = (
+        await simulateTransaction(connection, signedTransaction, "single")
+      ).value;
     } catch (e) {}
     if (simulateResult && simulateResult.err) {
       if (simulateResult.logs) {
         for (let i = simulateResult.logs.length - 1; i >= 0; --i) {
           const line = simulateResult.logs[i];
-          if (line.startsWith('Program log: ')) {
-            throw new Error('Transaction failed: ' + line.slice('Program log: '.length));
+          if (line.startsWith("Program log: ")) {
+            throw new Error(
+              "Transaction failed: " + line.slice("Program log: ".length)
+            );
           }
         }
       }
@@ -516,7 +566,7 @@ export async function sendSignedTransaction({
     done = true;
   }
 
-  console.log('Latency', txid, getUnixTs() - startTime);
+  console.log("Latency", txid, getUnixTs() - startTime);
   return { txid, slot };
 }
 
@@ -534,14 +584,14 @@ async function simulateTransaction(
   const signData = transaction.serializeMessage();
   // @ts-ignore
   const wireTransaction = transaction._serialize(signData);
-  const encodedTransaction = wireTransaction.toString('base64');
-  const config: any = { encoding: 'base64', commitment };
+  const encodedTransaction = wireTransaction.toString("base64");
+  const config: any = { encoding: "base64", commitment };
   const args = [encodedTransaction, config];
 
   // @ts-ignore
-  const res = await connection._rpcRequest('simulateTransaction', args);
+  const res = await connection._rpcRequest("simulateTransaction", args);
   if (res.error) {
-    throw new Error('failed to simulate transaction: ' + res.error.message);
+    throw new Error("failed to simulate transaction: " + res.error.message);
   }
   return res.result;
 }
@@ -550,9 +600,18 @@ async function awaitTransactionSignatureConfirmation(
   txid: TransactionSignature,
   timeout: number,
   connection: Connection,
-  commitment: Commitment = 'recent',
+  commitment: Commitment = "recent",
   queryStatus = false
 ): Promise<SignatureStatus | null | void> {
+
+  let endpoint = (connection as any)._rpcEndpoint;
+  let env = "mainnet-beta";
+  for (const cfg of ENDPOINTS) {
+    if (cfg.endpoint === endpoint) {
+      env = cfg.name;
+      break;
+    }
+  }
   let done = false;
   let status: SignatureStatus | null | void = {
     slot: 0,
@@ -566,7 +625,7 @@ async function awaitTransactionSignatureConfirmation(
         return;
       }
       done = true;
-      console.log('Rejecting for timeout...');
+      console.log("Rejecting for timeout...");
       reject({ timeout: true });
     }, timeout);
     try {
@@ -580,10 +639,10 @@ async function awaitTransactionSignatureConfirmation(
             confirmations: 0,
           };
           if (result.err) {
-            console.log('Rejected via websocket', result.err);
+            console.log("Rejected via websocket", result.err);
             reject(status);
           } else {
-            console.log('Resolved via websocket', result);
+            console.log("Resolved via websocket", result);
             resolve(status);
           }
         },
@@ -591,33 +650,35 @@ async function awaitTransactionSignatureConfirmation(
       );
     } catch (e) {
       done = true;
-      console.error('WS error in setup', txid, e);
+      console.error("WS error in setup", txid, e);
     }
     while (!done && queryStatus) {
       // eslint-disable-next-line no-loop-func
       (async () => {
         try {
-          const signatureStatuses = await connection.getSignatureStatuses([txid]);
+          const signatureStatuses = await connection.getSignatureStatuses([
+            txid,
+          ]);
           status = signatureStatuses && signatureStatuses.value[0];
-          console.log(`https://explorer.solana.com/tx/${txid}?cluster=devnet`) // TODO
+          console.log(`https://explorer.solana.com/tx/${txid}?cluster=${env}`);
           if (!done) {
             if (!status) {
-              console.log('REST null result for', txid, status);
+              console.log("REST null result for", txid, status);
             } else if (status.err) {
-              console.log('REST error for', txid, status);
+              console.log("REST error for", txid, status);
               done = true;
               reject(status.err);
             } else if (!status.confirmations) {
-              console.log('REST no confirmations for', txid, status);
+              console.log("REST no confirmations for", txid, status);
             } else {
-              console.log('REST confirmation for', txid, status);
+              console.log("REST confirmation for", txid, status);
               done = true;
               resolve(status);
             }
           }
         } catch (e) {
           if (!done) {
-            console.log('REST connection error: txid', txid, e);
+            console.log("REST connection error: txid", txid, e);
           }
         }
       })();
@@ -626,8 +687,9 @@ async function awaitTransactionSignatureConfirmation(
   });
 
   //@ts-ignore
-  if (connection._signatureSubscriptions[subId]) connection.removeSignatureListener(subId);
+  if (connection._signatureSubscriptions[subId])
+    connection.removeSignatureListener(subId);
   done = true;
-  console.log('Returning status', status);
+  console.log("Returning status", status);
   return status;
 }

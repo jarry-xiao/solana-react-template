@@ -1,11 +1,11 @@
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ENDPOINTS, useColorMode, useConnectionConfig } from "../../contexts";
 import { notify, shortenAddress } from "../../utils";
 import { CopyOutlined } from "@ant-design/icons";
 import { ModalEnum, useModal, useWalletModal } from "../../contexts";
-import { Box, flexbox } from "@mui/system";
-import { Button, NativeSelect } from "@mui/material";
+import { Box } from "@mui/system";
+import { Button, FormControl, NativeSelect } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -17,7 +17,7 @@ export const Settings = ({
   additionalSettings?: JSX.Element;
 }) => {
   const { connected, disconnect, publicKey } = useWallet();
-  const { endpoint, setEndpoint, env } = useConnectionConfig();
+  const { setEndpoint, env, endpoint } = useConnectionConfig();
   const { setVisible } = useWalletModal();
   const open = useCallback(() => setVisible(true), [setVisible]);
   const { setModal } = useModal();
@@ -34,11 +34,19 @@ export const Settings = ({
       <Box sx={{ display: "flex", minWidth: "100%" }}>
         {!connected && (
           <>
-            <NativeSelect style={{ marginBottom: 5 }}>
-              {ENDPOINTS.map(({ name, endpoint }) => (
-                <option value={endpoint}>{name}</option>
-              ))}
-            </NativeSelect>
+            <FormControl>
+              <NativeSelect
+                style={{ marginBottom: 5 }}
+                onChange={(e) => {
+                  setEndpoint(e.target.value);
+                }}
+                value={endpoint}
+              >
+                {ENDPOINTS.map(({ name, endpoint }) => (
+                  <option key={name} value={endpoint}>{name}</option>
+                ))}
+              </NativeSelect>
+            </FormControl>
             <Button
               variant="contained"
               onClick={handleConnect}
